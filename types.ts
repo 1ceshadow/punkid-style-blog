@@ -15,6 +15,5 @@ export interface SiteConfig {
   author: string;
   socials: {
     github: string;
-    twitter: string;
   };
 }
