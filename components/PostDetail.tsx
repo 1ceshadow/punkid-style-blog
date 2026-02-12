@@ -19,7 +19,7 @@ interface PostDetailProps {
 export const PostDetail: React.FC<PostDetailProps> = ({ post, onBack }) => {
   const [summary, setSummary] = useState<string | null>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
-  const [copiedCodeIndex, setCopiedCodeIndex] = useState<number | null>(null);
+  const [copiedCodeIndex, setCopiedCodeIndex] = useState<string | null>(null);
 
   const handleGenerateSummary = async () => {
     setIsLoadingSummary(true);
@@ -28,24 +28,55 @@ export const PostDetail: React.FC<PostDetailProps> = ({ post, onBack }) => {
     setIsLoadingSummary(false);
   };
 
-  const copyToClipboard = (code: string, index: number) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCodeIndex(index);
-    setTimeout(() => setCopiedCodeIndex(null), 2000);
+  const copyToClipboard = async (code: string, index: string) => {
+    let copied = false;
+
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(code);
+        copied = true;
+      }
+    } catch (error) {
+      copied = false;
+    }
+
+    if (!copied) {
+      const textarea = document.createElement('textarea');
+      textarea.value = code;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'absolute';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+
+      try {
+        copied = document.execCommand('copy');
+      } catch (error) {
+        copied = false;
+      }
+
+      document.body.removeChild(textarea);
+    }
+
+    if (copied) {
+      setCopiedCodeIndex(index);
+      setTimeout(() => setCopiedCodeIndex(null), 2000);
+    }
   };
 
   // Custom renderers for various Markdown elements
   const customComponents = useMemo(() => ({
-    // 代码块 - 带语法高亮
+    // Custom Code Block Renderer
     code: ({ node, inline, className, children, ...props }: any) => {
       const match = /language-(\w+)/.exec(className || '');
       const isInline = inline || !match;
+      const codeString = String(children).replace(/\n$/, '');
       
-      // 行内代码
+      // Inline Code - Gemini Styled
       if (isInline) {
         return (
           <code 
-            className="bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded text-sm font-mono border border-rose-200 dark:border-rose-800"
+            className="px-1.5 py-0.5 mx-0.5 rounded-md bg-slate-100 dark:bg-slate-800/50 text-rose-600 dark:text-rose-300 font-mono text-[0.85em] border border-slate-200 dark:border-slate-700/50 align-middle tracking-tight"
             {...props}
           >
             {children}
@@ -53,47 +84,60 @@ export const PostDetail: React.FC<PostDetailProps> = ({ post, onBack }) => {
         );
       }
 
-      // 代码块
-      const language = match ? match[1] : 'plaintext';
-      const code = String(children).replace(/\n$/, '');
-      const codeIndex = Math.random();
+      // Code Block - Modern Editor Style
+      const language = match ? match[1] : 'text';
+      // Use code content as stable ID to fix "Copied" state flickering on re-render
+      const uniqueId = `${language}:${codeString}`;
 
-      let highlighted = code;
+      let highlighted = codeString;
       try {
-        if (language) {
-          highlighted = hljs.highlight(code, { language, ignoreIllegals: true }).value;
+        if (language && hljs.getLanguage(language)) {
+          highlighted = hljs.highlight(codeString, { language, ignoreIllegals: true }).value;
         } else {
-          highlighted = hljs.highlightAuto(code).value;
+          highlighted = hljs.highlightAuto(codeString).value;
         }
       } catch (e) {
-        highlighted = code;
+        // Fallback
       }
 
       return (
-        <div className="relative my-6 group">
-          <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="group my-6 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0d1117] shadow-sm hover:shadow-md transition-all duration-300">
+          {/* Editor Header */}
+          <div className="flex items-center justify-between px-4 py-2 bg-slate-50 dark:bg-[#161b22] border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider select-none">
+                {language}
+              </span>
+            </div>
+            
             <button
-              onClick={() => copyToClipboard(code, codeIndex as any)}
-              className="flex items-center gap-1 px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-medium"
+              onClick={() => copyToClipboard(codeString, uniqueId)}
+              className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-all active:scale-95"
+              aria-label="Copy code"
             >
-              {copiedCodeIndex === codeIndex ? (
+              {copiedCodeIndex === uniqueId ? (
                 <>
-                  <Check size={14} /> Copied
+                  <Check size={14} className="text-emerald-500" />
+                  <span className="text-emerald-600 dark:text-emerald-500">Copied</span>
                 </>
               ) : (
                 <>
-                  <Copy size={14} /> Copy
+                  <Copy size={14} />
+                  <span>Copy</span>
                 </>
               )}
             </button>
           </div>
-          <pre className="bg-slate-900 dark:bg-black p-4 rounded-lg overflow-x-auto">
-            <code 
-              className={`hljs language-${language} text-slate-100`}
-              dangerouslySetInnerHTML={{ __html: highlighted }}
-            />
-          </pre>
-          <div className="text-xs text-slate-500 mt-2 font-mono text-right">{language}</div>
+
+          <div className="relative">
+             {/* Code Content */}
+            <pre className="!m-0 !p-4 overflow-x-auto bg-white dark:bg-[#0d1117] text-sm leading-relaxed">
+              <code 
+                className={`!bg-transparent !p-0 font-mono hljs language-${language}`}
+                dangerouslySetInnerHTML={{ __html: highlighted }}
+              />
+            </pre>
+          </div>
         </div>
       );
     },
