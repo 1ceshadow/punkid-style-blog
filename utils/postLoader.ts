@@ -3,29 +3,18 @@
  * 从 posts/ 目录动态加载所有 Markdown 文件
  */
 
-interface PostFile {
-  default: string;
-}
-
 /**
  * 使用 Vite 的 import.meta.glob 加载所有 .md 文件
  * eager: true 表示立即加载，返回内容而非 Promise
  */
 export function loadAllPosts(): string[] {
-  const postFiles = import.meta.glob<PostFile>('/posts/**/*.md', {
+  const postFiles = import.meta.glob<string>('/posts/**/*.md', {
     eager: true,
     query: '?raw',
     import: 'default'
   });
 
-  const posts: string[] = [];
-
-  for (const path in postFiles) {
-    const content = postFiles[path] as unknown as string;
-    posts.push(content);
-  }
-
-  return posts;
+  return Object.values(postFiles);
 }
 
 /**
