@@ -1,6 +1,6 @@
 import React from 'react';
 import { SITE_CONFIG } from '../constants';
-import { Sun, Moon, Github, Twitter, Terminal } from 'lucide-react';
+import { Sun, Moon, Github, Terminal } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -62,9 +62,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, darkMode, toggleTheme,
           <div className="flex gap-4">
             <a href={SITE_CONFIG.socials.github} target="_blank" rel="noreferrer" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors flex items-center gap-1">
               <Github size={14} /> Github
-            </a>
-            <a href={SITE_CONFIG.socials.twitter} target="_blank" rel="noreferrer" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors flex items-center gap-1">
-              <Twitter size={14} /> Twitter
             </a>
           </div>
         </footer>

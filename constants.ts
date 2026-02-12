@@ -5,7 +5,7 @@ import { parseFrontmatter, calculateReadingTime } from './utils/markdownUtils';
 export const SITE_CONFIG: SiteConfig = {
   title: "DevLog",
   description: "Notes on code, design, and life.",
-  author: "Alex Dev",
+  author: "iceshadow",
   socials: {
     github: "https://github.com/1ceshadow",
   }
